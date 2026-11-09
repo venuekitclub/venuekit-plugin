@@ -35,6 +35,12 @@ jobs:
         shell: pwsh
         run: Get-ChildItem -Recurse out\Venuekit | Select-Object FullName, Length
 
+      - name: List zip
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::OpenRead("$PWD\out\Venuekit\latest.zip").Entries | ForEach-Object { "$($_.FullName)  $($_.Length)" }
+
       - name: Release + repo.json
         shell: pwsh
         env:

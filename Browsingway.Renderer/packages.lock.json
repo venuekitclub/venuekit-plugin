@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "CefSharp.Common.NETCore": {
+        "type": "Direct",
+        "requested": "[143.0.90, )",
+        "resolved": "143.0.90",
+        "contentHash": "I2AJ18LKVe1IXF65Fg9kzjEjrdSpXVZ0QIrMPoHPwxXlIQo9fM+8oSO9VcFA+1AS+rc7WAi0QRC6xnrBqw/YmQ==",
+        "dependencies": {
+          "chromiumembeddedframework.runtime": "[143.0.9]"
+        }
+      },
+      "CefSharp.OffScreen.NETCore": {
+        "type": "Direct",
+        "requested": "[143.0.90, )",
+        "resolved": "143.0.90",
+        "contentHash": "LZkuQQEEGJ9yOBb3KAsTpFzUUnoht0Na1rOOoUTL21elRnTnGKHZg0fZJ1ymaLkzhBxIMNDiNmsHDzl95jpPCQ==",
+        "dependencies": {
+          "CefSharp.Common.NETCore": "[143.0.90]"
+        }
+      },
+      "SharedMemory": {
+        "type": "Direct",
+        "requested": "[2.3.2, )",
+        "resolved": "2.3.2",
+        "contentHash": "hH34Y9xzvdJpgf/vwyWE/zYlY4BdQS3Zolfdg+8hV9A+UQRsBWyBS62kcLO55mF4etmMoL0PswEbT3lVXJSlFw=="
+      },
+      "chromiumembeddedframework.runtime": {
+        "type": "Transitive",
+        "resolved": "143.0.9",
+        "contentHash": "YheTfOBPlREllTceyzSlZob4uuymVRHuZAb+65DADcPo9333p5DvFcyp/eCFYeQ3QuHdR2KU4YMdiYqPOv5LyQ=="
+      },
+      "FlatSharp.Runtime": {
+        "type": "Transitive",
+        "resolved": "7.9.0",
+        "contentHash": "Bm8+WqzEsWNpxqrD5x4x+zQ8dyINlToCreM5FI2oNSfUVc9U9ZB+qztX/jd8rlJb3r0vBSlPwVLpw0xBtPa3Vw=="
+      },
+      "browsingway.common": {
+        "type": "Project",
+        "dependencies": {
+          "FlatSharp.Runtime": "[7.9.0, )",
+          "SharedMemory": "[2.3.2, )"
+        }
+      }
+    },
+    "net10.0-windows7.0/win-x64": {
+      "CefSharp.Common.NETCore": {
+        "type": "Direct",
+        "requested": "[143.0.90, )",
+        "resolved": "143.0.90",
+        "contentHash": "I2AJ18LKVe1IXF65Fg9kzjEjrdSpXVZ0QIrMPoHPwxXlIQo9fM+8oSO9VcFA+1AS+rc7WAi0QRC6xnrBqw/YmQ==",
+        "dependencies": {
+          "chromiumembeddedframework.runtime": "[143.0.9]"
+        }
+      },
+      "chromiumembeddedframework.runtime": {
+        "type": "Transitive",
+        "resolved": "143.0.9",
+        "contentHash": "YheTfOBPlREllTceyzSlZob4uuymVRHuZAb+65DADcPo9333p5DvFcyp/eCFYeQ3QuHdR2KU4YMdiYqPOv5LyQ==",
+        "dependencies": {
+          "chromiumembeddedframework.runtime.win-x64": "143.0.9"
+        }
+      },
+      "chromiumembeddedframework.runtime.win-x64": {
+        "type": "Transitive",
+        "resolved": "143.0.9",
+        "contentHash": "RvNr25vLTty2J6vdQzytwv55ce1qUotU2fXPmI/KZK8t4CFEeaS9jfkBavpsOaEYVKVWgIyne28ZxeA7STOoTA=="
+      }
+    }
+  }
+}

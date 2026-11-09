@@ -1,0 +1,60 @@
+name: Build & release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Download Dalamud (reference assemblies)
+        shell: pwsh
+        run: |
+          $dir = "$env:AppData\XIVLauncher\addon\Hooks\dev"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip $dir
+          Get-Content "$dir\Dalamud.deps.json" -TotalCount 5 -ErrorAction SilentlyContinue
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build Venuekit/Venuekit.csproj -c Release -p:Platform=x64
+
+      - name: List output
+        shell: pwsh
+        run: Get-ChildItem -Recurse out\Venuekit | Select-Object FullName, Length
+
+      - name: Release + repo.json
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $m = Get-Content out\Venuekit\Venuekit.json -Raw | ConvertFrom-Json
+          $v = $m.AssemblyVersion
+          $tag = "v$v"
+          $exists = gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) { gh release upload $tag out\Venuekit\latest.zip --clobber }
+          else { gh release create $tag out\Venuekit\latest.zip --title "Venuekit $v" --notes "$($m.Changelog)" }
+          $url = "https://github.com/${{ github.repository }}/releases/download/$tag/latest.zip"
+          $m | Add-Member -Force NoteProperty DownloadLinkInstall $url
+          $m | Add-Member -Force NoteProperty DownloadLinkUpdate $url
+          $m | Add-Member -Force NoteProperty DownloadLinkTesting $url
+          $m | Add-Member -Force NoteProperty IsTestingExclusive $false
+          $m | Add-Member -Force NoteProperty LastUpdate ([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())
+          ConvertTo-Json @($m) -Depth 5 | Set-Content -Encoding utf8 repo.json
+          git config user.name "venuekit-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add repo.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) { git commit -m "repo.json for $tag [skip ci]"; git push }

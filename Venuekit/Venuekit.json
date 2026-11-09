@@ -1,0 +1,10 @@
+{
+    "Name": "Venuekit",
+    "Author": "Venuekit",
+    "Punchline": "Play Venue Clash – the trading card game of your favourite FFXIV venues – right in-game.",
+    "Description": "Venue Clash from venuekit.club in an in-game window: open packs, check your album and play duels without alt-tabbing.\nRight-click a player → \"Challenge to Venue Clash\" (or /clash duel) to challenge them in-game – they get a pop-up and can join with one click.\n\nCommands: /clash · /clash duel · /clash accept · /clash settings\n\nThe in-game browser is based on Browsingway by Styr1x (GPL-3.0).",
+    "RepoUrl": "https://github.com/venuekitclub/venuekit-plugin",
+    "IconUrl": "https://raw.githubusercontent.com/venuekitclub/venuekit-plugin/main/Venuekit/images/icon.png",
+    "Tags": ["venue", "cards", "tcg", "game", "venuekit", "clash", "social"],
+    "Changelog": "- First beta: Venue Clash window, in-game challenges via right-click and /clash duel"
+}

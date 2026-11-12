@@ -2,6 +2,11 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
+using FFXIVClientStructs.FFXIV.Client.System.String;
+using FFXIVClientStructs.FFXIV.Client.UI;
+using System.Text.RegularExpressions;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin;
 using Dalamud.Bindings.ImGui;
@@ -63,6 +68,7 @@ public class Plugin : IDalamudPlugin
 
 		_api = new VenuekitApi(_config.BaseUrl, _config.Key);
 		_api.Notification += OnNote;
+		_api.Roll += OnRollRequest;
 		_api.Error += msg => Services.PluginLog.Warning("[venuekit] " + msg);
 
 		_dependencyManager = new DependencyManager(_pluginDir, _pluginConfigDir);
@@ -84,6 +90,7 @@ public class Plugin : IDalamudPlugin
 
 		Services.ContextMenu.OnMenuOpened += OnMenuOpened;
 		Services.Framework.Update += OnFrameworkUpdate;
+		Services.Chat.ChatMessage += OnChat;
 		_api.Start();
 	}
 
@@ -94,6 +101,7 @@ public class Plugin : IDalamudPlugin
 	{
 		Services.ContextMenu.OnMenuOpened -= OnMenuOpened;
 		Services.Framework.Update -= OnFrameworkUpdate;
+		Services.Chat.ChatMessage -= OnChat;
 		foreach (string c in _commands) Services.CommandManager.RemoveHandler(c);
 		_api.Dispose();
 		_overlay?.Dispose();
@@ -286,9 +294,16 @@ public class Plugin : IDalamudPlugin
 			PrefixColor = 37,
 			OnClicked = _ => Invite(name, world),
 		});
+		args.AddMenuItem(new MenuItem
+		{
+			Name = "Challenge to Sunset Showdown",
+			PrefixChar = 'V',
+			PrefixColor = 500,
+			OnClicked = _ => Invite(name, world, true),
+		});
 	}
 
-	private void Invite(string name, string world)
+	private void Invite(string name, string world, bool showdown = false)
 	{
 		if (!_api.Linked)
 		{
@@ -296,16 +311,16 @@ public class Plugin : IDalamudPlugin
 			SetVisible(true);
 			return;
 		}
-		Print("Sending a Venue Clash challenge to " + name + "…");
+		Print("Sending a " + (showdown ? "Sunset Showdown" : "Venue Clash") + " challenge to " + name + "…");
 		_ = Task.Run(async () =>
 		{
-			var (ok, id, error) = await _api.Invite(name, world);
+			var (ok, id, error) = await _api.Invite(name, world, showdown);
 			await Services.Framework.RunOnFrameworkThread(() =>
 			{
 				if (ok)
 				{
-					Print("⚔ Challenge sent to " + name + "! Pick your 5 cards – the window opens now.");
-					OpenDuel(id);
+					Print((showdown ? "🌅" : "⚔") + " Challenge sent to " + name + "! Pick your " + (showdown ? "3" : "5") + " cards – the window opens now.");
+					if (showdown) OpenUrl(StartUrl("&sd=" + Uri.EscapeDataString(id))); else OpenDuel(id);
 				}
 				else PrintError(error);
 			});
@@ -316,10 +331,11 @@ public class Plugin : IDalamudPlugin
 	{
 		Services.Framework.RunOnFrameworkThread(() =>
 		{
-			if (note.T != "duel") return;
-			string text = note.From + " challenges you to Venue Clash!";
+			if (note.T != "duel" && note.T != "sd" && note.T != "sdgo") return;
+			bool sd = note.T != "duel";
+			string text = note.T == "sdgo" ? note.From + " is ready – your Sunset Showdown starts!" : note.From + " challenges you to " + (sd ? "Sunset Showdown!" : "Venue Clash!");
 			if (_config.ChatMessages) Print("⚔ " + text + " Type /clash accept to open it.");
-			_lastInvite = note.Id;
+			_lastInvite = note.Id; _lastInviteSd = sd;
 			if (!_config.Notifications) return;
 			IActiveNotification n = Services.Notifications.AddNotification(new Notification
 			{
@@ -330,11 +346,64 @@ public class Plugin : IDalamudPlugin
 				InitialDuration = TimeSpan.FromSeconds(30),
 			});
 			string id = note.Id;
-			n.Click += _ => { Services.Framework.RunOnFrameworkThread(() => OpenDuel(id)); n.DismissNow(); };
+			n.Click += _ => { Services.Framework.RunOnFrameworkThread(() => { if (sd) OpenUrl(StartUrl("&sd=" + Uri.EscapeDataString(id))); else OpenDuel(id); }); n.DismissNow(); };
 		});
 	}
 
 	private string _lastInvite = "";
+	private bool _lastInviteSd;
+
+	// ---------------- Sunset Showdown: the plugin rolls /random and reads the result ----------------
+	private string _rolledKey = "";
+	private long _rolledAt;
+
+	private void OnRollRequest(VenuekitApi.SdRequest q)
+	{
+		string key = q.Id + ":" + q.Round;
+		long now = Environment.TickCount64;
+		if (key == _rolledKey && now - _rolledAt < 45000) return;   // already rolled (Venuekit waits for the confirmation)
+		_rolledKey = key;
+		_rolledAt = now;
+		Services.Framework.RunOnFrameworkThread(() => SendRandom(q.Max));
+	}
+
+	private static unsafe void SendRandom(int max)
+	{
+		if (max < 1 || max > 999) return;
+		var s = Utf8String.FromString("/random " + max);
+		UIModule.Instance()->ProcessChatBoxEntry(s);
+		s->Dtor(true);
+	}
+
+	private static readonly Regex _nums = new(@"\d+", RegexOptions.Compiled);
+
+	private void OnChat(Dalamud.Game.Chat.IHandleableChatMessage m)
+	{
+		try
+		{
+			if (m.LogKind != XivChatType.RandomNumber || !_api.Linked) return;
+			var ns = _nums.Matches(m.Message.TextValue);
+			if (ns.Count < 2) return;   // /random without a number has no "(out of N)"
+			int roll = int.Parse(ns[ns.Count - 2].Value), max = int.Parse(ns[ns.Count - 1].Value);
+			if (roll < 1 || max < 1 || roll > max || max > 999) return;
+			string who;
+			var pp = m.Message.Payloads.OfType<PlayerPayload>().FirstOrDefault();
+			if (pp != null)
+			{
+				string w = pp.World.ValueNullable?.Name.ExtractText() ?? "";
+				if (w == "") return;
+				who = pp.PlayerName + "@" + w;
+			}
+			else
+			{
+				if (_charName == "" || _charWorld == "") return;
+				who = _charName + "@" + _charWorld;   // "You roll …"
+			}
+			var list = new List<(string, int, int)> { (who, roll, max) };
+			_ = Task.Run(() => _api.ReportRolls(list));
+		}
+		catch (Exception e) { Services.PluginLog.Warning("[venuekit] chat roll: " + e.Message); }
+	}
 
 	private void HandleCommand(string command, string rawArgs)
 	{
@@ -355,7 +424,8 @@ public class Plugin : IDalamudPlugin
 				PrintError("Target a player first, then type /clash duel.");
 				break;
 			case "accept":
-				if (_lastInvite != "") OpenDuel(_lastInvite);
+				if (_lastInvite != "" && _lastInviteSd) OpenUrl(StartUrl("&sd=" + Uri.EscapeDataString(_lastInvite)));
+				else if (_lastInvite != "") OpenDuel(_lastInvite);
 				else PrintError("No open challenge right now.");
 				break;
 			case "settings":

@@ -29,8 +29,17 @@ internal sealed class VenuekitApi : IDisposable
 	private string _ch = "", _world = "";
 	private long _since = -1;   // -1: first poll – only remember the newest note, do not show old ones
 
+	public sealed class SdRequest
+	{
+		[JsonPropertyName("id")] public string Id { get; set; } = "";
+		[JsonPropertyName("max")] public int Max { get; set; }
+		[JsonPropertyName("round")] public int Round { get; set; }
+	}
+
 	public bool Linked { get; private set; }
+	public bool Fast { get; private set; }
 	public event Action<Note>? Notification;
+	public event Action<SdRequest>? Roll;
 	public event Action<string>? Error;
 
 	public VenuekitApi(string baseUrl, string key)
@@ -51,7 +60,7 @@ internal sealed class VenuekitApi : IDisposable
 		{
 			try { await Poll(); }
 			catch (Exception e) { Error?.Invoke(e.Message); }
-			try { await Task.Delay(TimeSpan.FromSeconds(Linked ? 20 : 8), _stop.Token); } catch (TaskCanceledException) { return; }
+			try { await Task.Delay(TimeSpan.FromSeconds(Fast ? 2 : Linked ? 20 : 8), _stop.Token); } catch (TaskCanceledException) { return; }
 		}
 	}
 
@@ -60,6 +69,12 @@ internal sealed class VenuekitApi : IDisposable
 		if (_ch == "") return;   // not logged in to a character (title screen)
 		JsonElement r = await Call("plugPoll", _key, _ch, _world, Math.Max(0, _since));
 		Linked = r.TryGetProperty("linked", out var l) && l.GetBoolean();
+		Fast = r.TryGetProperty("fast", out var f) && f.ValueKind == JsonValueKind.True;
+		if (r.TryGetProperty("sd", out var sd) && sd.ValueKind == JsonValueKind.Object)
+		{
+			var q = sd.Deserialize<SdRequest>();
+			if (q != null && q.Max > 0) Roll?.Invoke(q);
+		}
 		if (!Linked || !r.TryGetProperty("notes", out var notes)) return;
 		var list = notes.Deserialize<List<Note>>() ?? new();
 		bool first = _since < 0;
@@ -71,11 +86,18 @@ internal sealed class VenuekitApi : IDisposable
 		if (_since < 0) _since = 0;
 	}
 
-	public async Task<(bool ok, string id, string error)> Invite(string toName, string toWorld)
+	// rolls seen in the chat (own and others) – Venuekit matches them to running Showdowns
+	public async Task ReportRolls(List<(string who, int roll, int max)> rolls)
+	{
+		try { await Call("plugSdRoll", _key, _ch, _world, rolls.Select(x => new { who = x.who, roll = x.roll, max = x.max }).ToArray()); }
+		catch (Exception e) { Error?.Invoke(e.Message); }
+	}
+
+	public async Task<(bool ok, string id, string error)> Invite(string toName, string toWorld, bool showdown = false)
 	{
 		try
 		{
-			JsonElement r = await Call("plugInvite", _key, _ch, _world, toName, toWorld, "random");
+			JsonElement r = showdown ? await Call("plugSdInvite", _key, _ch, _world, toName, toWorld) : await Call("plugInvite", _key, _ch, _world, toName, toWorld, "random");
 			return (true, r.GetProperty("id").GetString() ?? "", "");
 		}
 		catch (Exception e) { return (false, "", e.Message); }

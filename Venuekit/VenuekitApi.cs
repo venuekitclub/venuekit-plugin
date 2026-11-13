@@ -66,7 +66,7 @@ internal sealed class VenuekitApi : IDisposable
 		{
 			try { await Poll(); }
 			catch (Exception e) { Error?.Invoke(e.Message); }
-			try { await _wake.WaitAsync(TimeSpan.FromSeconds(Fast || _active ? 1 : Linked ? 20 : 8), _stop.Token); } catch (OperationCanceledException) { return; }
+			try { await _wake.WaitAsync(TimeSpan.FromSeconds(Fast ? 1.5 : _active ? 2 : Linked ? 20 : 8), _stop.Token); } catch (OperationCanceledException) { return; }
 		}
 	}
 

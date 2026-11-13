@@ -14,5 +14,5 @@
         "clash",
         "social"
     ],
-    "Changelog": "- \"Roll in-game\" now starts /random within a second while the Venuekit window is open.\n- Sunset Showdown: rolls are read reliably in every client language; practice games in the plugin window roll in-game too; faster polling during a match.\n- Sunset Showdown (beta): right-click a player → \"Challenge to Sunset Showdown\". The plugin rolls /random for you and reads the result.\n- Venue Clash window, in-game challenges via right-click and /clash duel"
+    "Changelog": "- Lighter polling (every 2 s with the window open, 1.5 s during a Showdown match).\n- \"Roll in-game\" now starts /random within a second while the Venuekit window is open.\n- Sunset Showdown: rolls are read reliably in every client language; practice games in the plugin window roll in-game too; faster polling during a match.\n- Sunset Showdown (beta): right-click a player → \"Challenge to Sunset Showdown\". The plugin rolls /random for you and reads the result.\n- Venue Clash window, in-game challenges via right-click and /clash duel"
 }

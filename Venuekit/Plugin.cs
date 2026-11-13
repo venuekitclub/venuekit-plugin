@@ -364,6 +364,7 @@ public class Plugin : IDalamudPlugin
 		if (key == _rolledKey && now - _rolledAt < 45000) return;   // already rolled (Venuekit waits for the confirmation)
 		_rolledKey = key;
 		_rolledAt = now;
+		_wantMax = q.Max;
 		Services.Framework.RunOnFrameworkThread(() => SendRandom(q.Max));
 	}
 
@@ -376,16 +377,44 @@ public class Plugin : IDalamudPlugin
 	}
 
 	private static readonly Regex _nums = new(@"\d+", RegexOptions.Compiled);
+	private static readonly Regex _range = new(@"\b1\s*[-–~]\s*(\d+)", RegexOptions.Compiled);
+	private int _wantMax;          // the /random we just sent (for the log)
+
+	// The result text differs per client language and patch ("You roll a 452 (out of 600)", "(1-600) …", German, French …).
+	// So: drop a "1-600" range start, then the roll is the smaller and the max the larger of the two numbers left.
+	internal static bool ParseRoll(string text, out int roll, out int max)
+	{
+		roll = max = 0;
+		var nums = new List<int>();
+		var rm = _range.Match(text);
+		string rest = text;
+		if (rm.Success) { nums.Add(int.Parse(rm.Groups[1].Value)); rest = text.Remove(rm.Index, rm.Length); }
+		foreach (Match x in _nums.Matches(rest)) if (int.TryParse(x.Value, out int n)) nums.Add(n);
+		if (nums.Count < 2) return false;   // /random without a number has no max
+		if (nums.Count > 2) { if (!rm.Success) return false; nums = nums.GetRange(0, 2); }
+		roll = Math.Min(nums[0], nums[1]); max = Math.Max(nums[0], nums[1]);
+		return roll >= 1 && max <= 999;
+	}
 
 	private void OnChat(Dalamud.Game.Chat.IHandleableChatMessage m)
 	{
 		try
 		{
-			if (m.LogKind != XivChatType.RandomNumber || !_api.Linked) return;
-			var ns = _nums.Matches(m.Message.TextValue);
-			if (ns.Count < 2) return;   // /random without a number has no "(out of N)"
-			int roll = int.Parse(ns[ns.Count - 2].Value), max = int.Parse(ns[ns.Count - 1].Value);
-			if (roll < 1 || max < 1 || roll > max || max > 999) return;
+			if (!_api.Linked) return;
+			string text = m.Message.TextValue;
+			bool waiting = Environment.TickCount64 - _rolledAt < 60000 && _wantMax > 0;
+			int kind = (int)m.LogKind;
+			int roll, max;
+			if (m.LogKind != XivChatType.RandomNumber)
+			{
+				// fallback: a system line right after our /random that carries our max (never a player chat channel)
+				bool chatChannel = kind < 40 || (kind >= 101 && kind <= 107);
+				if (!waiting || chatChannel || !text.Contains(_wantMax.ToString())) return;
+				Services.PluginLog.Info($"[venuekit] roll? kind={kind} text={text}");
+				if (!ParseRoll(text, out roll, out max) || max != _wantMax) return;
+			}
+			else if (!ParseRoll(text, out roll, out max)) { Services.PluginLog.Info($"[venuekit] roll not read: {text}"); return; }
+			Services.PluginLog.Info($"[venuekit] roll {roll}/{max}: {text}");
 			string who;
 			var pp = m.Message.Payloads.OfType<PlayerPayload>().FirstOrDefault();
 			if (pp != null)

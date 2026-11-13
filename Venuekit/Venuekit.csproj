@@ -9,7 +9,7 @@
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<LangVersion>latestmajor</LangVersion>
-		<Version>0.2.1.0</Version>
+		<Version>0.2.2.0</Version>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AssemblyName>Venuekit</AssemblyName>
 		<RootNamespace>Browsingway</RootNamespace>

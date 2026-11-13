@@ -91,6 +91,7 @@ public class Plugin : IDalamudPlugin
 		Services.ContextMenu.OnMenuOpened += OnMenuOpened;
 		Services.Framework.Update += OnFrameworkUpdate;
 		Services.Chat.ChatMessage += OnChat;
+		_api.Active = _config.Visible;
 		_api.Start();
 	}
 
@@ -178,6 +179,7 @@ public class Plugin : IDalamudPlugin
 	{
 		_window.Hidden = !visible;
 		_config.Visible = visible;
+		_api.Active = visible;
 		Save();
 	}
 

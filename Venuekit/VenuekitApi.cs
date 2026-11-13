@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -38,6 +39,11 @@ internal sealed class VenuekitApi : IDisposable
 
 	public bool Linked { get; private set; }
 	public bool Fast { get; private set; }
+	// window open → poll every second, so "Roll in-game" starts /random right away
+	private volatile bool _active;
+	private readonly SemaphoreSlim _wake = new(0);
+	public bool Active { get => _active; set { bool was = _active; _active = value; if (value && !was) Wake(); } }
+	public void Wake() { if (_wake.CurrentCount == 0) _wake.Release(); }
 	public event Action<Note>? Notification;
 	public event Action<SdRequest>? Roll;
 	public event Action<string>? Error;
@@ -60,7 +66,7 @@ internal sealed class VenuekitApi : IDisposable
 		{
 			try { await Poll(); }
 			catch (Exception e) { Error?.Invoke(e.Message); }
-			try { await Task.Delay(TimeSpan.FromSeconds(Fast ? 2 : Linked ? 20 : 8), _stop.Token); } catch (TaskCanceledException) { return; }
+			try { await _wake.WaitAsync(TimeSpan.FromSeconds(Fast || _active ? 1 : Linked ? 20 : 8), _stop.Token); } catch (OperationCanceledException) { return; }
 		}
 	}
 

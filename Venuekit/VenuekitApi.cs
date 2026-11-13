@@ -60,13 +60,25 @@ internal sealed class VenuekitApi : IDisposable
 
 	public void Start() => _ = Task.Run(Loop);
 
+	// Polling only when it is needed (fewer requests = lower server costs):
+	//   Showdown match running → 1.5 s · window open → 10 s · just sent a challenge → 10 s for 10 min
+	//   window closed, logged in → every 2 min (in-game challenges still arrive) · logged out / not connected → no requests
+	private long _inviteUntil;
+	public void InviteSent() { _inviteUntil = Environment.TickCount64 + 600000; Wake(); }
 	private async Task Loop()
 	{
 		while (!_stop.IsCancellationRequested)
 		{
-			try { await Poll(); }
-			catch (Exception e) { Error?.Invoke(e.Message); }
-			try { await _wake.WaitAsync(TimeSpan.FromSeconds(Fast ? 1.5 : _active ? 2 : Linked ? 20 : 8), _stop.Token); } catch (OperationCanceledException) { return; }
+			bool invite = Environment.TickCount64 < _inviteUntil;
+			// window closed: only while logged in with a character and connected (the first poll checks the connection)
+			bool due = Fast || _active || (_ch != "" && (Linked || _since < 0));
+			if (due)
+			{
+				try { await Poll(); }
+				catch (Exception e) { Error?.Invoke(e.Message); }
+			}
+			double wait = Fast ? 1.5 : _active ? (Linked ? 10 : 4) : invite ? 10 : due ? 120 : 30;
+			try { await _wake.WaitAsync(TimeSpan.FromSeconds(wait), _stop.Token); } catch (OperationCanceledException) { return; }
 		}
 	}
 

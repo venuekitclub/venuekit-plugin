@@ -321,6 +321,7 @@ public class Plugin : IDalamudPlugin
 			{
 				if (ok)
 				{
+					_api.InviteSent();
 					Print((showdown ? "🌅" : "⚔") + " Challenge sent to " + name + "! Pick your " + (showdown ? "3" : "5") + " cards – the window opens now.");
 					if (showdown) OpenUrl(StartUrl("&sd=" + Uri.EscapeDataString(id))); else OpenDuel(id);
 				}

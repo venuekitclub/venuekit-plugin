@@ -3,7 +3,7 @@
     "Author": "Venuekit",
     "Name": "Venuekit",
     "InternalName": "Venuekit",
-    "AssemblyVersion": "0.2.2",
+    "AssemblyVersion": "0.2.3",
     "Description": "Venue Clash from venuekit.club in an in-game window: open packs, check your album and play duels without alt-tabbing.\nPlay Sunset Showdown in-game – the plugin rolls /random for you.\nRight-click a player → \"Challenge to Venue Clash\" (or /clash duel) to challenge them in-game – they get a pop-up and can join with one click.\n\nCommands: /clash · /clash duel · /clash accept · /clash settings\n\nThe in-game browser is based on Browsingway by Styr1x (GPL-3.0).",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/venuekitclub/venuekit-plugin",
@@ -23,12 +23,12 @@
     "LoadPriority": 0,
     "IconUrl": "https://raw.githubusercontent.com/venuekitclub/venuekit-plugin/main/Venuekit/images/icon.png",
     "Punchline": "Play Venue Clash – the trading card game of your favourite FFXIV venues – right in-game.",
-    "Changelog": "- \"Roll in-game\" now starts /random within a second while the Venuekit window is open.\n- Sunset Showdown: rolls are read reliably in every client language; practice games in the plugin window roll in-game too; faster polling during a match.\n- Sunset Showdown (beta): right-click a player → \"Challenge to Sunset Showdown\". The plugin rolls /random for you and reads the result.\n- Venue Clash window, in-game challenges via right-click and /clash duel",
+    "Changelog": "- Lighter polling (every 2 s with the window open, 1.5 s during a Showdown match).\n- \"Roll in-game\" now starts /random within a second while the Venuekit window is open.\n- Sunset Showdown: rolls are read reliably in every client language; practice games in the plugin window roll in-game too; faster polling during a match.\n- Sunset Showdown (beta): right-click a player → \"Challenge to Sunset Showdown\". The plugin rolls /random for you and reads the result.\n- Venue Clash window, in-game challenges via right-click and /clash duel",
     "AcceptsFeedback": true,
-    "DownloadLinkInstall": "https://github.com/venuekitclub/venuekit-plugin/releases/download/v0.2.2/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/venuekitclub/venuekit-plugin/releases/download/v0.2.2/latest.zip",
-    "DownloadLinkTesting": "https://github.com/venuekitclub/venuekit-plugin/releases/download/v0.2.2/latest.zip",
+    "DownloadLinkInstall": "https://github.com/venuekitclub/venuekit-plugin/releases/download/v0.2.3/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/venuekitclub/venuekit-plugin/releases/download/v0.2.3/latest.zip",
+    "DownloadLinkTesting": "https://github.com/venuekitclub/venuekit-plugin/releases/download/v0.2.3/latest.zip",
     "IsTestingExclusive": false,
-    "LastUpdate": 1794564030
+    "LastUpdate": 1794605282
   }
 ]
